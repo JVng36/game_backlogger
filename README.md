@@ -1,6 +1,8 @@
 # Backlog — a game backlog tracker
 
-No build step, no dependencies, no server. Open `backlog.html` in any browser and it runs. Share it by sending the files or hosting them anywhere static (e.g. GitHub Pages).
+No build step, no dependencies, no server. Open `backlog.html` in any browser and it runs. Share it by sending the files or hosting them anywhere static.
+
+This project uses localStorage (5mb) as a save file for keeping track of games. Export and Import save file via JSON array.
 
 ## Files
 

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Backlog — Project Diagram</title>
+<!-- This will require an internet connection to load Mermaid from CDN so it won't render offline like the main app. -->
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    background: #f0eff4;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 64px;
+  }
+  h1 { font-size: 18px; font-weight: 600; color: #2a2740; margin-bottom: 32px; letter-spacing: -0.01em; }
+  .diagram {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 40px 48px;
+  }
+</style>
+</head>
+<body>
+<h1>Backlog — Project Architecture</h1>
+<div class="diagram">
+  <div class="mermaid">
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontSize": "15px",
+    "primaryColor": "#ede9fe",
+    "primaryTextColor": "#2a2740",
+    "primaryBorderColor": "#8b80f0",
+    "lineColor": "#8b80f0",
+    "secondaryColor": "#fef9ee",
+    "tertiaryColor": "#f0fdf4"
+  }
+}}%%
+graph TD
+    HTML["<b>backlog.html</b><br/>HTML skeleton<br/>loads every other file"]
+
+    HTML --> CSS
+    HTML --> CONST
+    HTML --> STATE
+    HTML --> RENDER
+    HTML --> EI
+    HTML --> MAIN
+
+    CSS["<b>style.css</b><br/>All visual styling<br/>dark &amp; light themes"]
+
+    CONST["<b>constants.js</b><br/>Read-only lookup tables<br/>BUCKETS · PLATFORMS · ICONS"]
+
+    STATE["<b>state.js</b><br/>Runtime data &amp; UI state<br/>games[] · activeTab · editingId<br/>load() / save()"]
+
+    LS[("<b>localStorage</b><br/>persists games[]<br/>between sessions")]
+
+    RENDER["<b>render.js</b><br/>Rebuilds the DOM on every state change<br/>card grid · add/edit form · bucket strip · toast"]
+
+    EI["<b>export-import.js</b><br/>JSON file download<br/>JSON file upload &amp; merge"]
+
+    MAIN["<b>main.js</b><br/>Wires up all event listeners<br/>theme toggle · boots the app"]
+
+    STATE <-->|"load() on boot<br/>save() on change"| LS
+    CONST -->|"lookup tables"| RENDER
+    STATE -->|"read state"| RENDER
+    STATE -->|"read / mutate games"| EI
+    RENDER -->|"toast() · render()"| EI
+    STATE -->|"mutate state"| MAIN
+    RENDER -->|"call render()"| MAIN
+    EI -->|"call export / import"| MAIN
+  </div>
+</div>
+<script>
+  mermaid.initialize({ startOnLoad: true });
+</script>
+</body>
+</html>
