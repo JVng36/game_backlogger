@@ -31,19 +31,68 @@ function renderSummary() {
     `${games.length} game${games.length === 1 ? "" : "s"}${hrs ? ` · ~${hrs}h estimated` : ""}`;
 }
 
+function formFields(g) {
+  return `
+    <select id="f-platform">${PLATFORMS.map(p => `<option ${p === (g?.platform ?? "") ? "selected" : ""}>${p}</option>`).join("")}</select>
+    <select id="f-genre">${GENRES.map(ge => `<option value="${ge}" ${ge === (g?.genre ?? "") ? "selected" : ""}>${ge || "Genre (optional)"}</option>`).join("")}</select>
+    <input id="f-hours" type="number" min="0" placeholder="Est. hours" value="${g?.hours ?? ""}" />
+    <select id="f-bucket">${BUCKETS.map(b => `<option ${b.id === (g?.bucket ?? activeTab) ? "selected" : ""}>${b.id}</option>`).join("")}</select>
+    <div class="full"><textarea id="f-notes" rows="2" placeholder="Notes (optional)">${esc(g?.notes ?? "")}</textarea></div>`;
+}
+
+function readFields() {
+  return {
+    platform: document.getElementById("f-platform").value,
+    genre:    document.getElementById("f-genre").value,
+    hours:    document.getElementById("f-hours").value ? Number(document.getElementById("f-hours").value) : null,
+    bucket:   document.getElementById("f-bucket").value,
+    notes:    document.getElementById("f-notes").value.trim(),
+  };
+}
+
 function renderForm() {
   const mount = document.getElementById("formMount");
+
+  if (editingId !== null) {
+    const g = games.find(x => x.id === editingId);
+    if (!g) { editingId = null; mount.innerHTML = ""; updateAddToggle(); return; }
+    mount.innerHTML = `
+      <div class="form">
+        <div class="form-label">Edit game</div>
+        <div class="grid">
+          <div class="full"><input id="f-title" value="${esc(g.title)}" placeholder="Game title" /></div>
+          ${formFields(g)}
+        </div>
+        <div class="form-actions">
+          <button class="btn ghost sm" id="f-cancel">Cancel</button>
+          <button class="btn sm" id="f-save">Save</button>
+        </div>
+      </div>`;
+    const titleEl = document.getElementById("f-title");
+    titleEl.focus();
+    const saveEdit = () => {
+      const title = titleEl.value.trim();
+      if (!title) { titleEl.focus(); return; }
+      const fields = readFields();
+      Object.assign(g, { title, ...fields });
+      editingId = null;
+      activeTab = fields.bucket;
+      save(); render(); toast("Saved");
+    };
+    document.getElementById("f-save").onclick = saveEdit;
+    document.getElementById("f-cancel").onclick = () => { editingId = null; render(); };
+    titleEl.onkeydown = e => { if (e.key === "Enter") saveEdit(); };
+    updateAddToggle();
+    return;
+  }
+
   if (!showAdd) { mount.innerHTML = ""; updateAddToggle(); return; }
   mount.innerHTML = `
     <div class="form">
       <div class="form-label">New game</div>
       <div class="grid">
         <div class="full"><input id="f-title" placeholder="Game title" autofocus /></div>
-        <select id="f-platform">${PLATFORMS.map(p => `<option>${p}</option>`).join("")}</select>
-        <select id="f-genre">${GENRES.map(g => `<option value="${g}">${g || "Genre (optional)"}</option>`).join("")}</select>
-        <input id="f-hours" type="number" min="0" placeholder="Est. hours" />
-        <select id="f-bucket">${BUCKETS.map(b => `<option ${b.id === activeTab ? "selected" : ""}>${b.id}</option>`).join("")}</select>
-        <div class="full"><textarea id="f-notes" rows="2" placeholder="Notes (optional)"></textarea></div>
+        ${formFields(null)}
       </div>
       <div class="form-actions">
         <button class="btn ghost sm" id="f-cancel">Cancel</button>
@@ -55,21 +104,12 @@ function renderForm() {
   const submit = () => {
     const title = titleEl.value.trim();
     if (!title) { titleEl.focus(); return; }
-    const bucket = document.getElementById("f-bucket").value;
-    games.push({
-      id: Date.now(),
-      title,
-      platform: document.getElementById("f-platform").value,
-      genre: document.getElementById("f-genre").value,
-      hours: document.getElementById("f-hours").value ? Number(document.getElementById("f-hours").value) : null,
-      notes: document.getElementById("f-notes").value.trim(),
-      bucket,
-    });
+    const fields = readFields();
+    games.push({ id: Date.now(), title, ...fields });
     save();
     showAdd = false;
-    activeTab = bucket;
-    render();
-    toast(`Added to ${bucket}`);
+    activeTab = fields.bucket;
+    render(); toast(`Added to ${fields.bucket}`);
   };
   document.getElementById("f-add").onclick = submit;
   document.getElementById("f-cancel").onclick = () => { showAdd = false; render(); };
@@ -97,9 +137,6 @@ function renderList() {
 
   list.innerHTML = items.map((g, i) => {
     const spotlight = activeTab === "Now" && i === 0;
-    const moves = BUCKETS.filter(b => b.id !== activeTab).map(b =>
-      `<button class="move" data-move="${g.id}" data-to="${b.id}" style="--mc:${COLOR_HEX[b.id]}">${ICONS[b.icon]} ${b.label}</button>`
-    ).join("");
     return `<div class="card ${spotlight ? "spotlight" : ""}">
       ${spotlight ? `<div class="badge-now">${ICONS.play} Playing now</div>` : ""}
       <div class="card-top">
@@ -112,18 +149,24 @@ function renderList() {
           </div>
           ${g.notes ? `<div class="notes">${esc(g.notes)}</div>` : ""}
         </div>
-        <button class="del" data-del="${g.id}" aria-label="Remove ${esc(g.title)}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+        <div class="card-btns">
+          <button class="card-btn edit-btn" data-edit="${g.id}" aria-label="Edit ${esc(g.title)}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="card-btn del-btn" data-del="${g.id}" aria-label="Remove ${esc(g.title)}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="moves"><span class="lbl">Move to</span>${moves}</div>
     </div>`;
   }).join("");
 
-  list.querySelectorAll("[data-move]").forEach(btn =>
+  list.querySelectorAll("[data-edit]").forEach(btn =>
     btn.onclick = () => {
-      const g = games.find(x => x.id === Number(btn.dataset.move));
-      if (g) { g.bucket = btn.dataset.to; save(); render(); }
+      editingId = Number(btn.dataset.edit);
+      showAdd = false;
+      render();
+      document.getElementById("formMount").scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   list.querySelectorAll("[data-del]").forEach(btn =>
     btn.onclick = () => {

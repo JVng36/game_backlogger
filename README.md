@@ -29,6 +29,3 @@ Saved to the browser's `localStorage` under the key `"game-backlog-v1"`. Data is
 ## Rendering
 
 No virtual DOM — `render()` rebuilds the dynamic sections from state and re-attaches event handlers. Fine at this scale; a framework would only earn its keep on a much larger app.
-# game_backlogger
-# game_backlogger
-# game_backlogger

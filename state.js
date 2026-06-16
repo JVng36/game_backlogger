@@ -1,6 +1,7 @@
 let games = [];
 let activeTab = "Now";
 let showAdd = false;
+let editingId = null;
 let search = "";
 let sortBy = "added";
 
